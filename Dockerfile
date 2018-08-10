@@ -7,18 +7,22 @@ RUN apt-get install -y \
   cmake \
   curl \
   xz-utils \
-  python
+  python \
+  git
 
-WORKDIR /llvm/build
-RUN curl http://releases.llvm.org/6.0.0/llvm-6.0.0.src.tar.xz | \
-  tar xJf - -C /llvm --strip-components 1
+WORKDIR /
+RUN git clone https://github.com/rust-lang/llvm --depth=1 -b rust-llvm-release-7-0-0-v2
 RUN mkdir /llvm/tools/clang
-RUN curl http://releases.llvm.org/6.0.0/cfe-6.0.0.src.tar.xz | \
-  tar xJf - -C /llvm/tools/clang --strip-components 1
+WORKDIR /llvm/tools
+RUN git clone https://github.com/llvm-mirror/clang.git --depth=1 -b release_70
+WORKDIR /
+RUN git clone https://github.com/llvm-mirror/lld.git --depth=1 -b release_70
+WORKDIR /llvm/build
 RUN cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/clang \
   -DLLVM_TARGETS_TO_BUILD=X86 \
+  -DLLVM_ENABLE_PROJECTS=lld \
   -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly
 RUN make -j $(nproc)
 RUN make install
@@ -34,17 +38,22 @@ RUN rustup target add wasm32-unknown-unknown
 ENV CC /clang/bin/clang
 
 WORKDIR /
-RUN apt-get install -y git
-RUN git clone https://github.com/jfbastien/musl
+RUN git clone https://github.com/jfbastien/musl --depth=1
 WORKDIR /musl
-RUN git reset --hard d312ecae
 ENV CFLAGS -O3 --target=wasm32-unknown-unknown-wasm -nostdlib -Wl,--no-entry
 RUN CFLAGS="$CFLAGS -Wno-error=pointer-sign" ./configure --prefix=/musl-sysroot wasm32
 RUN make -j$(nproc) install
 
 WORKDIR /
-RUN curl https://download.libsodium.org/libsodium/releases/libsodium-1.0.16.tar.gz | tar xzf -
-WORKDIR /libsodium-1.0.16
+#RUN curl https://download.libsodium.org/libsodium/releases/libsodium-1.0.16.tar.gz | tar xzf -
+#WORKDIR /libsodium-1.0.16
+RUN git clone	https://github.com/jedisct1/libsodium.git --depth=1
+WORKDIR /libsodium
+RUN apt-get install -y libtool autoconf
+RUN CFLAGS="$CFLAGS --sysroot=/musl-sysroot -DSODIUM_STATIC"\
+  ./autogen.sh
+RUN ln -s /clang/bin/lld /bin/lld
+# /clang/bin/lld (vue sur log)
 RUN CFLAGS="$CFLAGS --sysroot=/musl-sysroot -DSODIUM_STATIC"\
   ./configure \
   --host=asmjs \

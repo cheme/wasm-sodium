@@ -25,7 +25,8 @@
 
 // Nightly features needed to implement this crate
 #![feature(allocator_api)]
-
+#![feature(global_aloc)]
+#![feature(use_extern_macros)]
 // Nightly features required by `wasm_bindgen` currently
 #![feature(proc_macro, wasm_custom_section, wasm_import_module)]
 
@@ -36,7 +37,7 @@ extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
 use std::ffi::CStr;
-use std::heap::{GlobalAlloc, Global, Layout};
+use std::alloc::{GlobalAlloc, Global, Layout};
 use std::mem;
 use std::slice;
 
@@ -92,7 +93,7 @@ unsafe extern fn malloc(a: usize) -> *mut u8 {
         Ok(n) => n,
         Err(_) => return 0 as *mut u8,
     };
-    let ptr = Global.alloc(layout) as *mut usize;
+    let ptr = ::std::alloc::alloc(layout) as *mut usize;
     if ptr.is_null() {
         return ptr as *mut u8
     }
@@ -106,7 +107,7 @@ unsafe extern fn free(ptr: *mut u8) {
     let size = *ptr.offset(0);
     let align = mem::size_of::<usize>();
     let layout = Layout::from_size_align_unchecked(size, align);
-    Global.dealloc(ptr as *mut _, layout);
+    ::std::alloc::dealloc(ptr as *mut _, layout);
 }
 
 // Ok this is where functions get weird.

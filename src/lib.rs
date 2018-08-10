@@ -1,5 +1,5 @@
 #![feature(proc_macro, wasm_custom_section, wasm_import_module)]
-
+#![feature(use_extern_macros)]
 extern crate sodiumoxide;
 extern crate wasm_bindgen;
 extern crate libc_stub; // see comments on this crate for what this is
