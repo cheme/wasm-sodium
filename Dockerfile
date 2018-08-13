@@ -67,3 +67,38 @@ ENV SODIUM_LIB_DIR /musl-sysroot/lib
 ENV SODIUM_STATIC 1
 RUN rustup self uninstall -y
 ENV PATH /rust/bin:$PATH
+ENV SODIUM_INC_DIR /musl-sysroot/include
+ENV LIBCLANG_PATH /clang/lib
+# try openssl
+WORKDIR /
+RUN git clone https://github.com/openssl/openssl.git --depth=1
+WORKDIR /openssl
+RUN apt-get install -y libc6-dev-i386 
+#RUN ./Configure linux-x86_64 no-asm no-hw  no-threads  no-shared no-engine no-dso
+RUN CFLAGS="$CFLAGS --sysroot=/musl-sysroot "\
+  ./Configure linux-x86 \
+  --prefix=/musl-sysroot \
+  --openssldir=/musl-sysroot \
+  no-threads \
+  no-shared \
+  no-hw \
+  no-engine \
+  no-dso \
+  no-asm \
+  --target=wasm32-unknown-unknown-wasm \
+  -nostdlib \
+  -Wl,--rpath=/openssl \
+  --sysroot=/musl-sysroot
+#  -lcrypto \
+#  -lssl
+RUN CFLAGS="$CFLAGS --sysroot=/musl-sysroot "\
+   make build_libs install_dev
+#RUN CC=/clang/bin/clang; CFLAGS="$CFLAGS --target=wasm32-unknown-unknown-wasm -nostdlib -Wl,--no-entry"; ./Configure linux-x86_64 no-asm no-hw  no-threads  no-shared no-engine no-dso
+#RUN CC=/clang/bin/clang; CFLAGS="$CFLAGS --target=wasm32-unknown-unknown-wasm -nostdlib -Wl,--no-entry"; make
+#ENV LIB_CLANG /clang/include/clang
+ENV OPENSSL_LIB_DIR /musl-sysroot/lib
+ENV OPENSSL_INCLUDE_DIR /musl-sysroot/include
+ENV OPENSSL_STATIC 1
+ENV OPENSSL_LIBS ssl:crypto
+ENV WASM32_UNKNOWN_UNKNOWN_OPENSSL_STATIC 1
+

@@ -23,11 +23,11 @@ docker run \
   --tty \
   --rm \
   wasm-sodium-test \
-  cargo build --target wasm32-unknown-unknown --release
+  cargo build --target wasm32-unknown-unknown --release --features "wasm-tests"
 
 # Now that we've finished compiling, execute `wasm-bindgen` and then run it
 # through `node.js` to get some examples.
 wasm-bindgen --nodejs --out-dir . \
   target/wasm32-unknown-unknown/release/wasm_sodium.wasm
-
+#libssl.a and libcrypto.a in /openssl and header in /openssl/crypto and /openssl/ssl
 node run.js
